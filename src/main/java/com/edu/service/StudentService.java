@@ -22,31 +22,20 @@ public class StudentService {
     }
 
 
-    public Long createStudent(Student student)  {
-        Connection conn = null;
-        CallableStatement callableStatement = null;
-        Long newStudentId = null;
-        try {
-            conn = dataSource.getConnection();
-            callableStatement = conn.prepareCall("{call student_pkg.create_student(?,?,?,?,?,?)}");
-            callableStatement.setString(1, student.getFirstName());
-            callableStatement.setString(2, student.getLastName());
-            callableStatement.setString(3, student.getUsername());
-            callableStatement.setString(4, student.getEmail());
+    public Long createStudent(Student student) throws SQLException {
+        try (Connection conn = dataSource.getConnection();
+             CallableStatement stmt = conn.prepareCall("{call student_pkg.create_student(?,?,?,?,?,?)}")) {
 
-            String addressJson = student.getAddressJson();
-            //callableStatement.setClob(5, new javax.sql.rowset.serial.SerialClob(addressJson.toCharArray()));
-           // callableStatement.setBlob(5, (Blob) new SerialClob(addressJson.toCharArray()));
-            callableStatement.setCharacterStream(5, new StringReader(student.getAddressJson()));
+            stmt.setString(1, student.getFirstName());
+            stmt.setString(2, student.getLastName());
+            stmt.setString(3, student.getUsername());
+            stmt.setString(4, student.getEmail());
+            stmt.setCharacterStream(5, new StringReader(student.getAddressJson()));
+            stmt.registerOutParameter(6, Types.NUMERIC);
 
-            callableStatement.registerOutParameter(6, Types.NUMERIC);
-            callableStatement.execute();
-
-            newStudentId = callableStatement.getLong(6);
-
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            stmt.execute();
+            return stmt.getLong(6);
         }
-        return newStudentId;
     }
+
 }
