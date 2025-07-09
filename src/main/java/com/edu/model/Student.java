@@ -8,6 +8,10 @@ public class Student {
     private String email;
     private String addressJson; // decoded from BLOB
 
+    public Student() {
+
+    }
+
     public Student(Long studentId, String firstName, String lastName, String username, String email, String addressJson) {
         this.studentId = studentId;
         this.firstName = firstName;
