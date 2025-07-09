@@ -14,12 +14,7 @@ public class StudentRestApplication {
 		SpringApplication.run(StudentRestApplication.class, args);
 	}
 
-	@Bean
-	public CommandLineRunner testConnection(DataSource dataSource) {
-		return args -> {
-			System.out.println("Connected to DB: " + dataSource.getConnection().getMetaData().getURL());
-		};
-	}
+
 
 }
 
