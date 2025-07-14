@@ -1,7 +1,6 @@
 package com.edu.error;
 
 import com.edu.controller.StudentController;
-import com.edu.error.GlobalExceptionHandler;
 import com.edu.model.Student;
 import com.edu.service.StudentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,12 +15,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.sql.SQLException;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = StudentController.class)
+@WebMvcTest(StudentController.class)
 @Import(GlobalExceptionHandler.class)
 class GlobalExceptionHandlerTest {
 
@@ -33,39 +31,86 @@ class GlobalExceptionHandlerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Test
-    void testHandleSqlException_ORA_20001() throws Exception {
+    private Student sampleStudent() {
         Student student = new Student();
-        student.setFirstName(""); // Simulate missing first name
-        student.setLastName("Test");
-        student.setUsername("test.user");
-        student.setEmail("test@example.com");
+        student.setFirstName("Kabir");
+        student.setLastName("Gautam");
+        student.setUsername("kabir.g");
+        student.setEmail("kabir@example.com");
         student.setAddressJson("{\"city\":\"Boston\"}");
+        return student;
+    }
 
+    @Test
+    void testORA20001_FirstNameMissing() throws Exception {
         when(studentService.createStudent(any())).thenThrow(new SQLException("ORA-20001: First name is required"));
 
         mockMvc.perform(post("/api/students")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(student)))
+                        .content(objectMapper.writeValueAsString(sampleStudent())))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("First name is required."));
     }
 
     @Test
-    void testHandleSqlException_GenericOracleError() throws Exception {
-        doThrow(new SQLException("ORA-22000: Some unknown Oracle error"))
-                .when(studentService).deleteStudentById(999L);
+    void testORA20002_LastNameMissing() throws Exception {
+        when(studentService.createStudent(any())).thenThrow(new SQLException("ORA-20002: Last name is required"));
 
-        mockMvc.perform(delete("/api/students/999"))
-                .andExpect(status().isInternalServerError())
-               // .andExpect(content().string(containsString("Database error:")));
-                .andExpect(content().string("Delete failed: ORA-22000: Some unknown Oracle error"));
-
+        mockMvc.perform(post("/api/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleStudent())))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Last name is required."));
     }
 
     @Test
-    void testHandleGeneralException() throws Exception {
-        when(studentService.getStudentById(999L)).thenThrow(new RuntimeException("Unexpected failure"));
+    void testORA20003_UsernameMissing() throws Exception {
+        when(studentService.createStudent(any())).thenThrow(new SQLException("ORA-20003: Username is required"));
+
+        mockMvc.perform(post("/api/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleStudent())))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Username is required."));
+    }
+
+    @Test
+    void testORA20004_EmailMissing() throws Exception {
+        when(studentService.createStudent(any())).thenThrow(new SQLException("ORA-20004: Email is required"));
+
+        mockMvc.perform(post("/api/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleStudent())))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Email is required."));
+    }
+
+    @Test
+    void testORA20010_StudentIdMissingForUpdate() throws Exception {
+        doThrow(new SQLException("ORA-20010: Student ID is required for update"))
+                .when(studentService).updateStudent(any());
+
+        mockMvc.perform(put("/api/students/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleStudent())))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Student ID is required for update."));
+    }
+
+    @Test
+    void testGenericSQLExceptionFallback() throws Exception {
+        when(studentService.getStudentById(999L))
+                .thenThrow(new SQLException("ORA-99999: Unknown error"));
+
+        mockMvc.perform(get("/api/students/999"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Database error: ORA-99999: Unknown error"));
+    }
+
+    @Test
+    void testGenericExceptionFallback() throws Exception {
+        when(studentService.getStudentById(999L))
+                .thenThrow(new RuntimeException("Unexpected failure"));
 
         mockMvc.perform(get("/api/students/999"))
                 .andExpect(status().isInternalServerError())

@@ -1,7 +1,10 @@
 package com.edu.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public class Student {
     private Long studentId;
+    @Schema(description = "First name of the student", example = "Ayaan")
     private String firstName;
     private String lastName;
     private String username;
