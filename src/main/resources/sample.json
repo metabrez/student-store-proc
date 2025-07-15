@@ -1,0 +1,17 @@
+{
+  "firstName": "Cyan",
+  "lastName": "cyan",
+  "username": "rayaan.alam",
+  "email": "cyan.cyan@example.com",
+  "addressDTO": {
+    "street": "",
+    "city": "Hyderabad",
+    "pin": "560001"
+  },
+  "giftDTO": {
+    "giftName": "",
+    "category": "Engineering",
+    "status": "Delivered"
+  },
+  "giftDate": "2025-07-01 10:00:00"
+}

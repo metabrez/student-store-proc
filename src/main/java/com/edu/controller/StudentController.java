@@ -1,13 +1,13 @@
 package com.edu.controller;
 
+import com.edu.model.ErrorResponse;
+import com.edu.model.GiftDTO;
 import com.edu.model.Student;
+import com.edu.model.SuccessResponse;
 import com.edu.service.StudentService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,73 +21,91 @@ public class StudentController {
     @Autowired
     private StudentService studentService;
 
-    @Operation(summary = "Create student", description = "Adds a student with optional gift info")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student created successfully"),
-            @ApiResponse(responseCode = "400", description = "Validation failed — missing or invalid fields"),
-            @ApiResponse(responseCode = "500", description = "Server error during creation")
-    })
+
+
     @PostMapping
-    public ResponseEntity<?> createStudent(@RequestBody Student student) throws Exception {
-        Long id = studentService.createStudent(student);
-        return ResponseEntity.ok("Created student with ID: " + id);
+    public ResponseEntity<?> createStudent(@RequestBody @Valid Student student) {
+        try {
+            GiftDTO giftDTO = student.getGiftDTO();
+
+            if (giftDTO == null) {
+                return ResponseEntity.badRequest().body(
+                        new ErrorResponse(400, "giftDTO is missing in the request.", "Validation Error")
+                );
+            }
+
+            String status = giftDTO.getStatus();
+
+            if ("Delivered".equalsIgnoreCase(status) && student.getGiftDate() == null) {
+                return ResponseEntity.badRequest().body(
+                        new ErrorResponse(400, "giftDate is missing for status 'Delivered'", "Validation Error")
+                );
+            }
+
+            if (!"Delivered".equalsIgnoreCase(status) && student.getGiftDate() != null) {
+                return ResponseEntity.badRequest().body(
+                        new ErrorResponse(400, "giftDate should not be passed when status is not 'Delivered'", "Validation Error")
+                );
+            }
+
+            Long id = studentService.createStudent(student);
+            return ResponseEntity.ok(new SuccessResponse(200, "Student created with Id: " + id));
+
+        } catch (SQLException e) {
+            return handleSqlError(e);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    new ErrorResponse(500, e.getMessage(), "unexpected error")
+            );
+        }
     }
 
-    @Operation(summary = "Get student by ID", description = "Retrieves student info using ID")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student found"),
-            @ApiResponse(responseCode = "404", description = "Student not found"),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error")
-    })
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody @Valid Student student) {
+        try {
+            student.setStudentId(id);
+            studentService.updateStudent(student);
+            return ResponseEntity.ok(new SuccessResponse(200, "Student updated successfully"));
+        } catch (SQLException e) {
+            return handleSqlError(e);
+        }
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getStudent(@PathVariable Long id) {
         try {
             Student student = studentService.getStudentById(id);
             return ResponseEntity.ok(student);
-        } catch (SQLException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Student not found: " + ex.getMessage());
+        } catch (SQLException e) {
+            return handleSqlError(e);
         }
     }
 
-    @Operation(summary = "Update student", description = "Updates a student by ID")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Validation failed — incorrect inputs"),
-            @ApiResponse(responseCode = "404", description = "Student ID not found"),
-            @ApiResponse(responseCode = "500", description = "Server error during update")
-    })
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody Student student) {
-        try {
-            student.setStudentId(id);
-            studentService.updateStudent(student);
-            return ResponseEntity.ok("Student updated successfully.");
-        } catch (SQLException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Update failed: " + ex.getMessage());
-        }
-    }
-
-
-    @Operation(
-            summary = "Delete student by ID",
-            description = "Removes a student record from the system using their student ID"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Student not found"),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error during deletion")
-    })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteStudent(@PathVariable Long id) {
         try {
             studentService.deleteStudentById(id);
-            return ResponseEntity.ok("Student deleted successfully.");
-        } catch (SQLException ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Delete failed: " + ex.getMessage());
+            return ResponseEntity.ok(new SuccessResponse(200, "Student deleted successfully"));
+        } catch (SQLException e) {
+            return handleSqlError(e);
         }
     }
+
+    private ResponseEntity<ErrorResponse> badRequest(String msg) {
+        return ResponseEntity.badRequest().body(new ErrorResponse(400, msg, "field validation error"));
+    }
+
+    private ResponseEntity<ErrorResponse> handleSqlError(SQLException e) {
+        String m = e.getMessage();
+        if (m.contains("ORA-20001")) return badRequest("First name is required.");
+        if (m.contains("ORA-20002")) return badRequest("Last name is required.");
+        if (m.contains("ORA-20003")) return badRequest("Username is required.");
+        if (m.contains("ORA-20004")) return badRequest("Email is required.");
+        if (m.contains("ORA-20005")) return badRequest("Email format is invalid.");
+        if (m.contains("ORA-20006")) return badRequest("giftDate should not be passed when status is not Delivered.");
+        if (m.contains("ORA-20010")) return badRequest("Student ID is required for update.");
+        if (m.contains("ORA-20031")) return badRequest("Student not found.");
+        return ResponseEntity.status(500).body(new ErrorResponse(500, m, "unexpected error"));
+    }
+
 }

@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -34,4 +36,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Unexpected error: " + ex.getMessage());
     }
+
+    @ExceptionHandler(StudentNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleStudentNotFound(StudentNotFoundException ex) {
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("status", 404);
+        errorBody.put("message", "Student not found with ID: " + ex.getStudentId());
+        errorBody.put("title", "Student not found exception");
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationFailure(IllegalArgumentException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("title", "Validation Error");
+        error.put("message", ex.getMessage());
+        error.put("status", 400);
+        return ResponseEntity.badRequest().body(error);
+    }
+
+
+
+
+
 }
