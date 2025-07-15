@@ -32,7 +32,20 @@ public class StudentController {
             description = "Adds a student record with validated fields and nested gift/address JSON."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student created successfully"),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Student created successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Successful Creation",
+                                            summary = "Valid request payload for creating a student",
+                                            value = "{ \"firstName\": \"Kabir\", \"lastName\": \"Gautam\", \"username\": \"kabir.g\", \"email\": \"kabir@example.com\", \"addressDTO\": { \"street\": \"Park Lane\", \"city\": \"Chicago\", \"pin\": \"60601\" }, \"giftDTO\": { \"giftName\": \"Toy Car\", \"category\": \"Toys\", \"status\": \"Delivered\" }, \"giftDate\": \"2025-07-14 09:15:00\" }"
+                                    )
+                            }
+                    )
+            ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Validation error",
@@ -62,7 +75,21 @@ public class StudentController {
                             }
                     )
             ),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Server Error",
+                                            summary = "Occurs when something fails internally, like DB connection or JSON parsing",
+                                            value = "{ \"status\": 500, \"message\": \"Failed to serialize JSON fields: No serializer found for class\", \"title\": \"Unexpected Error\" }"
+                                    )
+                            }
+                    )
+            )
+
     })
     @PostMapping
     public ResponseEntity<?> createStudent(@RequestBody @Valid Student student) {
@@ -100,16 +127,60 @@ public class StudentController {
             );
         }
     }
-
     @Operation(
             summary = "Update an existing student",
-            description = "Updates a student record identified by ID, including blob and non-blob fields."
+            description = "Updates a student’s personal, address, and gift details by ID. Field-level validation applies."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Validation error"),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Student updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Successful Update",
+                                            summary = "All fields are valid",
+                                            value = "{ \"status\": 200, \"message\": \"Student updated successfully\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Validation error",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Missing Last Name",
+                                            summary = "lastName is empty",
+                                            value = "{ \"status\": 400, \"message\": \"Last name is required\", \"title\": \"Validation Error\" }"
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Gift Status",
+                                            summary = "Gift status is required",
+                                            value = "{ \"status\": 400, \"message\": \"Gift status is required\", \"title\": \"Validation Error\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Server Crash",
+                                            summary = "Database or deserialization error",
+                                            value = "{ \"status\": 500, \"message\": \"Unable to connect to database\", \"title\": \"Unexpected Error\" }"
+                                    )
+                            }
+                    )
+            )
     })
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody @Valid Student student) {
         try {
@@ -121,14 +192,54 @@ public class StudentController {
         }
     }
 
+
     @Operation(
-            summary = "Fetch a student by ID",
-            description = "Retrieves full student details including address/gift blobs and metadata."
+            summary = "Retrieve student by ID",
+            description = "Fetches full student details including address and gift information."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Student not found"),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Student retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Valid Student",
+                                            summary = "Student exists",
+                                            value = "{ \"studentId\": 101, \"firstName\": \"Kabir\", \"lastName\": \"Gautam\", \"username\": \"kabir.g\", \"email\": \"kabir@example.com\", \"addressDTO\": { \"street\": \"Main St\", \"city\": \"Chicago\", \"pin\": \"60601\" }, \"giftDTO\": { \"giftName\": \"Toy Car\", \"category\": \"Toys\", \"status\": \"Delivered\" }, \"giftDate\": \"2025-07-01 10:00:00\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Missing ID",
+                                            summary = "No ID provided",
+                                            value = "{ \"status\": 400, \"message\": \"Student ID is required\", \"title\": \"Validation Error\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Student not found or server error",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Student Not Found",
+                                            summary = "ID does not exist",
+                                            value = "{ \"status\": 500, \"message\": \"Student not found\", \"title\": \"Unexpected Error\" }"
+                                    )
+                            }
+                    )
+            )
     })
     @GetMapping("/{id}")
     public ResponseEntity<?> getStudent(@PathVariable Long id) {
@@ -141,13 +252,52 @@ public class StudentController {
     }
 
     @Operation(
-            summary = "Delete a student by ID",
-            description = "Removes the student record and associated logs from the system."
+            summary = "Delete student by ID",
+            description = "Removes a student record permanently."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Student deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Student not found"),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Student deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Successful Deletion",
+                                            summary = "Student removed",
+                                            value = "{ \"status\": 200, \"message\": \"Student deleted successfully\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Missing or invalid ID",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Missing ID",
+                                            summary = "ID not provided",
+                                            value = "{ \"status\": 400, \"message\": \"Student ID is required for deletion\", \"title\": \"Validation Error\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Student not found or internal error",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Student Not Found",
+                                            summary = "ID does not match any record",
+                                            value = "{ \"status\": 500, \"message\": \"Student not found\", \"title\": \"Unexpected Error\" }"
+                                    )
+                            }
+                    )
+            )
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteStudent(@PathVariable Long id) {
