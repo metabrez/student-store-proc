@@ -5,6 +5,11 @@ import com.edu.model.GiftDTO;
 import com.edu.model.Student;
 import com.edu.model.SuccessResponse;
 import com.edu.service.StudentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +27,43 @@ public class StudentController {
     private StudentService studentService;
 
 
-
+    @Operation(
+            summary = "Create a new student",
+            description = "Adds a student record with validated fields and nested gift/address JSON."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Student created successfully"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Validation error",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Missing First Name",
+                                            summary = "firstName is required",
+                                            value = "{ \"firstName\": \"\", \"lastName\": \"Gautam\", \"username\": \"kabir.g\", \"email\": \"kabir@example.com\", \"addressDTO\": { \"street\": \"Main St\", \"city\": \"Chicago\", \"pin\": \"60601\" }, \"giftDTO\": { \"giftName\": \"Toy\", \"category\": \"Games\", \"status\": \"Delivered\" }, \"giftDate\": \"2025-07-01 10:00:00\" }"
+                                    ),
+                                    @ExampleObject(
+                                            name = "Missing Email",
+                                            summary = "Email must be a valid format",
+                                            value = "{ \"firstName\": \"Kabir\", \"lastName\": \"Gautam\", \"username\": \"kabir.g\", \"email\": \"invalid-email\", \"addressDTO\": { \"street\": \"Main St\", \"city\": \"Chicago\", \"pin\": \"60601\" }, \"giftDTO\": { \"giftName\": \"Toy\", \"category\": \"Games\", \"status\": \"Delivered\" }, \"giftDate\": \"2025-07-01 10:00:00\" }"
+                                    ),
+                                    @ExampleObject(
+                                            name = "Missing Street",
+                                            summary = "Street in addressDTO is required",
+                                            value = "{ \"firstName\": \"Kabir\", \"lastName\": \"Gautam\", \"username\": \"kabir.g\", \"email\": \"kabir@example.com\", \"addressDTO\": { \"street\": \"\", \"city\": \"Chicago\", \"pin\": \"60601\" }, \"giftDTO\": { \"giftName\": \"Toy\", \"category\": \"Games\", \"status\": \"Delivered\" }, \"giftDate\": \"2025-07-01 10:00:00\" }"
+                                    ),
+                                    @ExampleObject(
+                                            name = "Missing Gift Status",
+                                            summary = "Status in giftDTO is required",
+                                            value = "{ \"firstName\": \"Kabir\", \"lastName\": \"Gautam\", \"username\": \"kabir.g\", \"email\": \"kabir@example.com\", \"addressDTO\": { \"street\": \"Main St\", \"city\": \"Chicago\", \"pin\": \"60601\" }, \"giftDTO\": { \"giftName\": \"Toy\", \"category\": \"Games\", \"status\": \"\" }, \"giftDate\": \"2025-07-01 10:00:00\" }"
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @PostMapping
     public ResponseEntity<?> createStudent(@RequestBody @Valid Student student) {
         try {
@@ -60,6 +101,15 @@ public class StudentController {
         }
     }
 
+    @Operation(
+            summary = "Update an existing student",
+            description = "Updates a student record identified by ID, including blob and non-blob fields."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Student updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody @Valid Student student) {
         try {
@@ -71,6 +121,15 @@ public class StudentController {
         }
     }
 
+    @Operation(
+            summary = "Fetch a student by ID",
+            description = "Retrieves full student details including address/gift blobs and metadata."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Student retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Student not found"),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<?> getStudent(@PathVariable Long id) {
         try {
@@ -81,6 +140,15 @@ public class StudentController {
         }
     }
 
+    @Operation(
+            summary = "Delete a student by ID",
+            description = "Removes the student record and associated logs from the system."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Student deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Student not found"),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteStudent(@PathVariable Long id) {
         try {
