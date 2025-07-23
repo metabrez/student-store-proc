@@ -43,7 +43,7 @@ class StudentControllerTest {
         sampleStudent.setLastName("Gautam");
         sampleStudent.setUsername("kabir.g");
         sampleStudent.setEmail("kabir@example.com");
-        sampleStudent.setAddressJson("{\"Address\":{\"city\":\"providence\",\"state\":\"RI\",\"zipcode\":\"02908\"}}");
+        //sampleStudent.setAddressJson("{\"Address\":{\"city\":\"providence\",\"state\":\"RI\",\"zipcode\":\"02908\"}}");
     }
 
     @Test

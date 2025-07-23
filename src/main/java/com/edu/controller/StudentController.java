@@ -326,4 +326,14 @@ public class StudentController {
         return ResponseEntity.status(500).body(new ErrorResponse(500, m, "unexpected error"));
     }
 
+    public boolean checkValidDeliveryStatus(Student student) {
+        if(student!=null){
+            if(student.getGiftDTO()==null){
+                throw new IllegalArgumentException("Gift DTO is required.");
+            }
+            return student.getGiftDTO().toString().equals("Delivered");
+        }
+        return false;
+    }
+
 }

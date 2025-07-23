@@ -37,7 +37,7 @@ class GlobalExceptionHandlerTest {
         student.setLastName("Gautam");
         student.setUsername("kabir.g");
         student.setEmail("kabir@example.com");
-        student.setAddressJson("{\"city\":\"Boston\"}");
+        //student.setAddressJson("{\"city\":\"Boston\"}");
         return student;
     }
 
