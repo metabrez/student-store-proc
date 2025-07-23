@@ -261,3 +261,252 @@ END;
 -- sample query --
 SELECT * FROM TABLE(Get_Orders_By_View('Restricted'));
 
+Select * from orders;
+
+ALTER TABLE Orders
+    ADD company_name VARCHAR2(20);
+
+--- Step 2: Create a Company_Books Table ---
+CREATE TABLE Company_Books (
+                               company_name VARCHAR2(20),
+                               book_title   VARCHAR2(100)
+);
+
+-- Insert company books ---
+-- Global
+INSERT INTO Company_Books VALUES ('Global', 'Java');
+INSERT INTO Company_Books VALUES ('Global', 'Oracle');
+INSERT INTO Company_Books VALUES ('Global', 'Python');
+
+-- National
+INSERT INTO Company_Books VALUES ('National', 'Oracle Database');
+INSERT INTO Company_Books VALUES ('National', 'C++');
+INSERT INTO Company_Books VALUES ('National', '.Net');
+
+-- Regional
+INSERT INTO Company_Books VALUES ('Regional', 'Operating System');
+INSERT INTO Company_Books VALUES ('Regional', 'Computer Management');
+
+-- Local
+INSERT INTO Company_Books VALUES ('Local', 'Local Newspaper');
+INSERT INTO Company_Books VALUES ('Local', 'Local Event');
+
+
+-- update create order ---
+CREATE OR REPLACE PROCEDURE Create_Order(
+    p_item         IN VARCHAR2,
+    p_price        IN NUMBER,
+    p_order_date   IN TIMESTAMP,
+    p_status       IN VARCHAR2,
+    p_view_level   IN VARCHAR2,
+    p_company_name IN VARCHAR2,
+    p_name         IN VARCHAR2,
+    p_street       IN VARCHAR2,
+    p_city         IN VARCHAR2,
+    p_state        IN VARCHAR2
+) AS
+    v_address_id NUMBER;
+BEGIN
+INSERT INTO Order_Address(name, street, city, state)
+VALUES (p_name, p_street, p_city, p_state)
+    RETURNING address_id INTO v_address_id;
+
+INSERT INTO Orders(item, price, order_date, status, view_level, company_name, address_id)
+VALUES (p_item, p_price, p_order_date, p_status, p_view_level, p_company_name, v_address_id);
+END;
+/
+
+-- create a new function --
+CREATE OR REPLACE FUNCTION Get_Orders_By_Company(
+    p_company_name IN VARCHAR2
+) RETURN SYS_REFCURSOR
+AS
+    v_cursor SYS_REFCURSOR;
+BEGIN
+OPEN v_cursor FOR
+SELECT o.order_id, o.item, o.price, o.order_date, o.status, o.view_level,
+       o.company_name,
+       a.name, a.street, a.city, a.state,
+       b.book_title
+FROM Orders o
+         JOIN Order_Address a ON o.address_id = a.address_id
+         JOIN Company_Books b ON o.company_name = b.company_name
+WHERE o.company_name = p_company_name;
+
+RETURN v_cursor;
+END;
+/
+
+-- Sample usage --
+DECLARE
+rc SYS_REFCURSOR;
+    order_id    NUMBER;
+    item        VARCHAR2(100);
+    price       NUMBER(10,2);
+    book_title  VARCHAR2(100);
+BEGIN
+    rc := Get_Orders_By_Company('Global');
+    LOOP
+FETCH rc INTO order_id, item, price, book_title;
+        EXIT WHEN rc%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Order #' || order_id || ': ' || item || ' | Book: ' || book_title);
+END LOOP;
+CLOSE rc;
+END;
+
+--Step 2: Insert Sample Orders Using Create_Order Procedure---
+-- Sample order --
+
+BEGIN
+    -- Global Company Order
+    Create_Order(
+        p_item         => 'Oracle Dev Kit',
+        p_price        => 150.00,
+        p_order_date   => TO_TIMESTAMP('2025-07-27 10:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_status       => 'Delivered',
+        p_view_level   => 'Public',
+        p_company_name => 'Global',
+        p_name         => 'Alice Johnson',
+        p_street       => '24 Ocean Dr',
+        p_city         => 'Boston',
+        p_state        => 'MA'
+    );
+
+    -- National Company Order
+    Create_Order(
+        p_item         => '.Net Core Framework',
+        p_price        => 120.00,
+        p_order_date   => TO_TIMESTAMP('2025-07-27 11:45:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_status       => 'Pending',
+        p_view_level   => 'Restricted',
+        p_company_name => 'National',
+        p_name         => 'Bob Lee',
+        p_street       => '88 Forest Ave',
+        p_city         => 'Springfield',
+        p_state        => 'MA'
+    );
+
+    -- Regional Company Order
+    Create_Order(
+        p_item         => 'Operating System Guide',
+        p_price        => 85.50,
+        p_order_date   => TO_TIMESTAMP('2025-07-27 14:30:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_status       => 'Delivered',
+        p_view_level   => 'Restricted',
+        p_company_name => 'Regional',
+        p_name         => 'Carlos Martinez',
+        p_street       => '12 Elm St',
+        p_city         => 'Worcester',
+        p_state        => 'MA'
+    );
+
+    -- Local Company Order
+    Create_Order(
+        p_item         => 'Local Events 2025',
+        p_price        => 20.00,
+        p_order_date   => TO_TIMESTAMP('2025-07-27 17:05:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_status       => 'Cancelled',
+        p_view_level   => 'Private',
+        p_company_name => 'Local',
+        p_name         => 'Diana Chen',
+        p_street       => '5 Maple Rd',
+        p_city         => 'Lowell',
+        p_state        => 'MA'
+    );
+END;
+
+SELECT * FROM TABLE(Get_Orders_By_View('Restricted'));
+
+SELECT * FROM TABLE(Get_Orders_By_Company('National'));
+
+-- update fetch statement --
+DECLARE
+rc SYS_REFCURSOR;
+    order_id     NUMBER;
+    item         VARCHAR2(100);
+    price        NUMBER(10,2);
+    order_date   TIMESTAMP;
+    status       VARCHAR2(50);
+    view_level   VARCHAR2(20);
+    company_name VARCHAR2(20);
+    name         VARCHAR2(100);
+    street       VARCHAR2(100);
+    city         VARCHAR2(50);
+    state        VARCHAR2(50);
+    book_title   VARCHAR2(100);
+BEGIN
+    rc := Get_Orders_By_Company('Global');
+    LOOP
+FETCH rc INTO order_id, item, price, order_date, status, view_level,
+                     company_name, name, street, city, state, book_title;
+        EXIT WHEN rc%NOTFOUND;
+
+        DBMS_OUTPUT.PUT_LINE('Order #' || order_id || ': ' || item ||
+                             ' | Book: ' || book_title ||
+                             ' | Company: ' || company_name);
+END LOOP;
+CLOSE rc;
+END;
+
+
+-- re validate the column count --
+SELECT o.order_id, o.item, o.price, o.order_date, o.status, o.view_level,
+       o.company_name,
+       a.name, a.street, a.city, a.state,
+       b.book_title
+FROM Orders o
+         JOIN Order_Address a ON o.address_id = a.address_id
+         JOIN Company_Books b ON o.company_name = b.company_name
+WHERE o.company_name = 'Global';
+
+-- modify the column --
+DECLARE
+rc SYS_REFCURSOR;
+    order_id     NUMBER;
+    item         VARCHAR2(100);
+    price        NUMBER(10,2);
+    order_date   TIMESTAMP;
+    status       VARCHAR2(50);
+    view_level   VARCHAR2(20);
+    company_name VARCHAR2(20);
+    name         VARCHAR2(100);
+    street       VARCHAR2(100);
+    city         VARCHAR2(50);
+    state        VARCHAR2(50);
+    book_title   VARCHAR2(100);
+BEGIN
+    rc := Get_Orders_By_Company('Global');
+    LOOP
+FETCH rc INTO
+            order_id, item, price, order_date, status, view_level,
+            company_name, name, street, city, state, book_title;
+
+        EXIT WHEN rc%NOTFOUND;
+
+        DBMS_OUTPUT.PUT_LINE('Order #' || order_id || ' - Item: ' || item);
+        DBMS_OUTPUT.PUT_LINE('Book: ' || book_title || ' | Company: ' || company_name);
+        DBMS_OUTPUT.PUT_LINE('Customer: ' || name || ', ' || city || ', ' || state);
+        DBMS_OUTPUT.PUT_LINE('------------------------------');
+END LOOP;
+CLOSE rc;
+END;
+
+-- execute query to get orders --
+
+SELECT
+    o.order_id,
+    o.item,
+    o.price,
+    o.order_date,
+    o.status,
+    o.view_level,
+    o.company_name,
+    a.name AS customer_name,
+    a.city,
+    a.state,
+    cb.book_title AS company_book
+FROM Orders o
+         JOIN Order_Address a ON o.address_id = a.address_id
+         JOIN Company_Books cb ON o.company_name = cb.company_name
+WHERE o.company_name = 'Regional';  -- Change to 'National', 'Regional', 'Local' as needed
+
