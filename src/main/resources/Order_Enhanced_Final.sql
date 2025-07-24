@@ -399,3 +399,50 @@ BEGIN
 END;
 /
 
+-- -- View all visible orders for a given access level
+SELECT *
+FROM TABLE(Order_Pkg.Get_Orders_By_Access_Level('Local'));  -- Try 'Global', 'National', etc.
+
+--
+SELECT order_id, item, status, company_name, city
+FROM TABLE(Order_Pkg.Get_Orders_By_Access_Level('Regional'))
+WHERE status = 'Delivered'
+  AND city = 'Boston';
+
+
+---
+SELECT company_name, COUNT(*) AS visible_orders
+FROM TABLE(Order_Pkg.Get_Orders_By_Access_Level('Local'))
+GROUP BY company_name;
+
+-- insert sample data --
+BEGIN
+    Order_Pkg.Create_Order(
+        'Oracle Performance Pack', 250, SYSTIMESTAMP, 'Delivered', 'Public', 'Global',
+        'Eli Jansen', '99 Query Way', 'Cambridge', 'MA'
+    );
+
+    Order_Pkg.Create_Order(
+        'JavaScript UI Kit', 120, SYSTIMESTAMP, 'Pending', 'Internal', 'Local',
+        'Tina Patel', '45 Front St', 'Nashua', 'NH'
+    );
+
+    Order_Pkg.Create_Order(
+        'Data Science Toolkit', 340, SYSTIMESTAMP, 'Processing', 'Restricted', 'National',
+        'Marcus Lin', '120 Analytics Rd', 'Concord', 'NH'
+    );
+
+    Order_Pkg.Create_Order(
+        'PL/SQL Masterclass', 280, SYSTIMESTAMP, 'Cancelled', 'Private', 'Regional',
+        'Sophie Lang', '32 Logic Loop', 'Providence', 'RI'
+    );
+END;
+/
+
+
+--- insert book --
+INSERT INTO Company_Books VALUES ('Regional', 'PL/SQL Masterclass');
+INSERT INTO Company_Books VALUES ('Local', 'JavaScript UI Kit');
+INSERT INTO Company_Books VALUES ('National', 'Data Science Toolkit');
+INSERT INTO Company_Books VALUES ('Global', 'Oracle Performance Pack');
+
